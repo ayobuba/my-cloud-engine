@@ -13,7 +13,7 @@ import subprocess
 iniparse = None
 psutil = None
 
-mysql_password = "secret"
+mysql_password = "kamikaze"
 
 def kill_process(process_name):
     for proc in psutil.process_iter():
@@ -113,7 +113,7 @@ def initialize_system():
 
     execute("apt-get clean" , True)
     execute("apt-get autoclean -y" , True)
-    execute("apt-get update -y" , True)
+    #execute("apt-get update -y" , True)
     execute("apt-get install ubuntu-cloud-keyring python-setuptools python-iniparse python-psutil -y", True)
     delete_file("/etc/apt/sources.list.d/grizzly.list")
     execute("echo deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/grizzly main >> /etc/apt/sources.list.d/grizzly.list")
@@ -140,7 +140,7 @@ def install_rabbitmq():
 
 def install_database():
     os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
-    execute("apt-get install mysql-server python-mysqldb mysql-client-5.5 -y", True)
+    execute("apt-get install mysql-server python-mysqldb mysql-client -y", True)
     execute("sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mysql/my.cnf")
     execute("service mysql restart", True)
     time.sleep(2)
@@ -151,57 +151,57 @@ def install_database():
 
 
 
-def _create_keystone_users():
-    os.environ['SERVICE_TOKEN'] = 'ADMINTOKEN'
-    os.environ['SERVICE_ENDPOINT'] = 'http://127.0.0.1:35357/v2.0'
-    os.environ['no_proxy'] = "localhost,127.0.0.1,%s" % ip_address
-
-    #TODO(ish) : This is crude way of doing. Install keystone client and use that to create tenants, role etc
-    admin_tenant = execute("keystone tenant-create --name admin --description 'Admin Tenant' --enabled true |grep ' id '|awk '{print $4}'")
-    admin_user = execute("keystone user-create --tenant_id %s --name admin --pass secret --enabled true|grep ' id '|awk '{print $4}'" % admin_tenant)
-    admin_role = execute("keystone role-create --name admin|grep ' id '|awk '{print $4}'")
-    execute("keystone user-role-add --user_id %s --tenant_id %s --role_id %s" % (admin_user, admin_tenant, admin_role))
-
-
-    service_tenant = execute("keystone tenant-create --name service --description 'Service Tenant' --enabled true |grep ' id '|awk '{print $4}'")
-
-
-    #keystone
-    keystone_service = execute("keystone service-create --name=keystone --type=identity --description='Keystone Identity Service'|grep ' id '|awk '{print $4}'")
-    execute("keystone endpoint-create --region region --service_id=%s --publicurl=http://%s:5000/v2.0 --internalurl=http://127.0.0.1:5000/v2.0 --adminurl=http://127.0.0.1:35357/v2.0" % (keystone_service, ip_address))
-
-
-    #Glance
-    glance_user = execute("keystone user-create --tenant_id %s --name glance --pass glance --enabled true|grep ' id '|awk '{print $4}'" % service_tenant)
-    execute("keystone user-role-add --user_id %s --tenant_id %s --role_id %s" % (glance_user, service_tenant, admin_role))
-
-    glance_service = execute("keystone service-create --name=glance --type=image --description='Glance Image Service'|grep ' id '|awk '{print $4}'")
-    execute("keystone endpoint-create --region region --service_id=%s --publicurl=http://%s:9292/v2 --internalurl=http://127.0.0.1:9292/v2 --adminurl=http://127.0.0.1:9292/v2" % (glance_service, ip_address))
-
-
-    #nova
-    nova_user = execute("keystone user-create --tenant_id %s --name nova --pass nova --enabled true|grep ' id '|awk '{print $4}'" % service_tenant)
-    execute("keystone user-role-add --user_id %s --tenant_id %s --role_id %s" % (nova_user, service_tenant, admin_role))
-
-    nova_service = execute("keystone service-create --name=nova --type=compute --description='Nova Compute Service'|grep ' id '|awk '{print $4}'")
-    execute("keystone endpoint-create --region region --service_id=%s --publicurl='http://%s:8774/v2/$(tenant_id)s' --internalurl='http://127.0.0.1:8774/v2/$(tenant_id)s' --adminurl='http://127.0.0.1:8774/v2/$(tenant_id)s'" % (nova_service, ip_address))
-
-
-    #quantum
-    quantum_user = execute("keystone user-create --tenant_id %s --name quantum --pass quantum --enabled true|grep ' id '|awk '{print $4}'" % service_tenant)
-    execute("keystone user-role-add --user_id %s --tenant_id %s --role_id %s" % (quantum_user, service_tenant, admin_role))
-
-    quantum_service = execute("keystone service-create --name=quantum --type=network  --description='OpenStack Networking service'|grep ' id '|awk '{print $4}'")
-    execute("keystone endpoint-create --region region --service_id=%s --publicurl=http://%s:9696/ --internalurl=http://127.0.0.1:9696/ --adminurl=http://127.0.0.1:9696/" % (quantum_service, ip_address))
-
-    #write a rc file
-    adminrc = "/root/adminrc"
-    delete_file(adminrc)
-    write_to_file(adminrc, "export OS_USERNAME=admin\n")
-    write_to_file(adminrc, "export OS_PASSWORD=secret\n")
-    write_to_file(adminrc, "export OS_TENANT_NAME=admin\n")
-    write_to_file(adminrc, "export OS_AUTH_URL=http://127.0.0.1:5000/v2.0\n")
-
+# def _create_keystone_users():
+#     os.environ['SERVICE_TOKEN'] = 'ADMINTOKEN'
+#     os.environ['SERVICE_ENDPOINT'] = 'http://127.0.0.1:35357/v2.0'
+#     os.environ['no_proxy'] = "localhost,127.0.0.1,%s" % ip_address
+#
+#     #TODO(ish) : This is crude way of doing. Install keystone client and use that to create tenants, role etc
+#     admin_tenant = execute("keystone tenant-create --name admin --description 'Admin Tenant' --enabled true |grep ' id '|awk '{print $4}'")
+#     admin_user = execute("keystone user-create --tenant_id %s --name admin --pass secret --enabled true|grep ' id '|awk '{print $4}'" % admin_tenant)
+#     admin_role = execute("keystone role-create --name admin|grep ' id '|awk '{print $4}'")
+#     execute("keystone user-role-add --user_id %s --tenant_id %s --role_id %s" % (admin_user, admin_tenant, admin_role))
+#
+#
+#     service_tenant = execute("keystone tenant-create --name service --description 'Service Tenant' --enabled true |grep ' id '|awk '{print $4}'")
+#
+#
+#     #keystone
+#     keystone_service = execute("keystone service-create --name=keystone --type=identity --description='Keystone Identity Service'|grep ' id '|awk '{print $4}'")
+#     execute("keystone endpoint-create --region region --service_id=%s --publicurl=http://%s:5000/v2.0 --internalurl=http://127.0.0.1:5000/v2.0 --adminurl=http://127.0.0.1:35357/v2.0" % (keystone_service, ip_address))
+#
+#
+#     #Glance
+#     glance_user = execute("keystone user-create --tenant_id %s --name glance --pass glance --enabled true|grep ' id '|awk '{print $4}'" % service_tenant)
+#     execute("keystone user-role-add --user_id %s --tenant_id %s --role_id %s" % (glance_user, service_tenant, admin_role))
+#
+#     glance_service = execute("keystone service-create --name=glance --type=image --description='Glance Image Service'|grep ' id '|awk '{print $4}'")
+#     execute("keystone endpoint-create --region region --service_id=%s --publicurl=http://%s:9292/v2 --internalurl=http://127.0.0.1:9292/v2 --adminurl=http://127.0.0.1:9292/v2" % (glance_service, ip_address))
+#
+#
+#     #nova
+#     nova_user = execute("keystone user-create --tenant_id %s --name nova --pass nova --enabled true|grep ' id '|awk '{print $4}'" % service_tenant)
+#     execute("keystone user-role-add --user_id %s --tenant_id %s --role_id %s" % (nova_user, service_tenant, admin_role))
+#
+#     nova_service = execute("keystone service-create --name=nova --type=compute --description='Nova Compute Service'|grep ' id '|awk '{print $4}'")
+#     execute("keystone endpoint-create --region region --service_id=%s --publicurl='http://%s:8774/v2/$(tenant_id)s' --internalurl='http://127.0.0.1:8774/v2/$(tenant_id)s' --adminurl='http://127.0.0.1:8774/v2/$(tenant_id)s'" % (nova_service, ip_address))
+#
+#
+#     #quantum
+#     quantum_user = execute("keystone user-create --tenant_id %s --name quantum --pass quantum --enabled true|grep ' id '|awk '{print $4}'" % service_tenant)
+#     execute("keystone user-role-add --user_id %s --tenant_id %s --role_id %s" % (quantum_user, service_tenant, admin_role))
+#
+#     quantum_service = execute("keystone service-create --name=quantum --type=network  --description='OpenStack Networking service'|grep ' id '|awk '{print $4}'")
+#     execute("keystone endpoint-create --region region --service_id=%s --publicurl=http://%s:9696/ --internalurl=http://127.0.0.1:9696/ --adminurl=http://127.0.0.1:9696/" % (quantum_service, ip_address))
+#
+#     #write a rc file
+#     adminrc = "/root/adminrc"
+#     delete_file(adminrc)
+#     write_to_file(adminrc, "export OS_USERNAME=admin\n")
+#     write_to_file(adminrc, "export OS_PASSWORD=secret\n")
+#     write_to_file(adminrc, "export OS_TENANT_NAME=admin\n")
+#     write_to_file(adminrc, "export OS_AUTH_URL=http://127.0.0.1:5000/v2.0\n")
+#
 
 
 def install_and_configure_keystone():
@@ -404,10 +404,10 @@ def install_and_configure_dashboard():
 initialize_system()
 install_rabbitmq()
 install_database()
-# install_and_configure_keystone()
-# install_and_configure_glance()
-# install_and_configure_nova()
-# install_and_configure_quantum()
+install_and_configure_keystone()
+install_and_configure_glance()
+install_and_configure_nova()
+install_and_configure_quantum()
 install_and_configure_dashboard()
 print_format(" Installation successfull! Login into horizon http://%s/horizon  Username:admin  Password:secret " % ip_address)
 
